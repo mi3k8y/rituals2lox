@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+.r2l-nav { margin-bottom:18px; }
+.r2l-nav a {
+  display:inline-block; padding:7px 16px; margin-right:4px;
+  background:#e8e8e8; border:1px solid #ccc; border-radius:4px 4px 0 0;
+  text-decoration:none; color:#333; font-size:0.9em;
+}
+.r2l-nav a.active { background:#fff; border-bottom-color:#fff; font-weight:bold; color:#000; }
+.r2l-hub-card {
+  border:1px solid #ddd; border-radius:6px; padding:12px 16px;
+  margin-bottom:14px; background:#fafafa;
+}
+.r2l-hub-card h3 { margin:0 0 8px 0; font-size:1.05em; }
+.r2l-hub-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(180px,1fr)); gap:4px 16px; font-size:0.88em; }
+.r2l-hub-grid span { color:#666; }
+.r2l-attr-row { display:flex; flex-wrap:wrap; gap:4px 20px; font-size:0.83em; color:#555;
+                margin-top:6px; padding-top:6px; border-top:1px solid #eee; }
+.r2l-attr-row span { color:#888; }
+.r2l-hub-hash { font-family:monospace; font-size:0.75em; color:#aaa; margin-top:6px; word-break:break-all; }
+.r2l-cmd { margin-top:8px; }
+.r2l-testbtn {
+  display:inline-block !important;
+  width:auto !important;
+  margin:0 5px 4px 0 !important;
+  padding:3px 14px !important;
+  font-size:0.83em !important;
+  cursor:pointer !important;
+  background:#e8e8e8 !important;
+  border:1px solid #bbb !important;
+  border-radius:3px !important;
+  font-weight:normal !important;
+}
+.r2l-testbtn:hover { background:#d0d0d0 !important; }
+.r2l-cmd-result { font-size:0.82em; margin-left:4px; }
+.r2l-status-ok  { color:#2a7a2a; font-weight:bold; }
+.r2l-status-off { color:#aaa; }
+.r2l-xml { font-family:monospace; font-size:0.78em; background:#f4f4f4; border:1px solid #ddd;
+           padding:12px; border-radius:4px; white-space:pre; overflow:auto; max-height:340px; }
+.r2l-copy-btn { margin-bottom:6px; padding:4px 12px; font-size:0.82em; cursor:pointer; }
+</style>
+</head>
+<body>
+
+<!-- Navigation -->
+<div class="r2l-nav">
+  <a href="index.cgi?page=config" <TMPL_IF PAGE_CONFIG>class="active"</TMPL_IF>>&#9881; Configuration</a>
+  <a href="index.cgi?page=hubs"   <TMPL_IF PAGE_HUBS>class="active"</TMPL_IF>>&#128161; Hubs</a>
+  <a href="index.cgi?page=wizard" <TMPL_IF PAGE_WIZARD>class="active"</TMPL_IF>>&#128736; Loxone Wizard</a>
+  <a href="index.cgi?page=logs"   <TMPL_IF PAGE_LOGS>class="active"</TMPL_IF>>&#128196; Logs</a>
+</div>
+
+<!-- === CONFIG =============================================================== -->
+<TMPL_IF PAGE_CONFIG>
+
+<TMPL_IF SAVE_OK>
+<div class="ui-state-highlight ui-corner-all" style="padding:10px;margin-bottom:14px;">
+  <strong><TMPL_VAR LANG.SAVE_OK></strong>
+</div>
+</TMPL_IF>
+<TMPL_IF REFRESH_OK>
+<div class="ui-state-highlight ui-corner-all" style="padding:10px;margin-bottom:14px;">
+  <strong><TMPL_VAR LANG.REFRESH_OK></strong>
+</div>
+</TMPL_IF>
+<TMPL_IF REFRESH_ERROR>
+<div class="ui-state-error ui-corner-all" style="padding:10px;margin-bottom:14px;">
+  <strong><TMPL_VAR LANG.REFRESH_ERROR></strong>
+</div>
+</TMPL_IF>
+
+<div class="ui-widget" style="margin-bottom:18px;">
+  <div class="ui-widget-header ui-corner-top" style="padding:8px 12px;"><TMPL_VAR LANG.AUTH_TITLE></div>
+  <div class="ui-widget-content ui-corner-bottom" style="padding:15px;">
+    <TMPL_IF AUTH_NONE>
+      <p>&#9888; <strong><TMPL_VAR LANG.NOT_AUTHENTICATED></strong></p>
+      <p><TMPL_VAR LANG.AUTH_INSTRUCTIONS></p>
+    </TMPL_IF>
+    <TMPL_IF AUTH_VALID>
+      <p class="r2l-status-ok">&#9989; <TMPL_VAR LANG.AUTHENTICATED></p>
+      <table style="font-size:0.9em;">
+        <tr><td><TMPL_VAR LANG.TOKEN_FETCHED>:&nbsp;</td><td><strong><TMPL_VAR TOKEN_FETCHED></strong></td></tr>
+        <tr><td><TMPL_VAR LANG.TOKEN_EXPIRES>:&nbsp;</td><td><strong><TMPL_VAR TOKEN_EXPIRES></strong> (<TMPL_VAR TOKEN_MIN_LEFT> <TMPL_VAR LANG.MINUTES>)</td></tr>
+        <TMPL_IF TOKEN_TTL_WARN>
+        <tr><td colspan="2"><p style="color:#b05000;font-size:0.85em;margin:4px 0;">
+          &#9888; Token has a long TTL from an old installation. Click <strong>Refresh Token Now</strong> to get a correct 60-minute token.
+        </p></td></tr>
+        </TMPL_IF>
+      </table>
+      <p style="font-size:0.85em;color:#666;margin-top:8px;"><TMPL_VAR LANG.AUTO_REFRESH_INFO></p>
+    </TMPL_IF>
+    <TMPL_IF AUTH_EXPIRED>
+      <p style="color:#b05000;font-weight:bold;">&#9203; <TMPL_VAR LANG.TOKEN_EXPIRED></p>
+      <p><TMPL_VAR LANG.TOKEN_EXPIRED_HINT></p>
+      <p style="font-size:0.85em;"><TMPL_VAR LANG.LAST_FETCHED>: <TMPL_VAR TOKEN_FETCHED></p>
+    </TMPL_IF>
+    <form method="post" action="index.cgi?page=config" style="margin-top:12px;">
+      <input type="hidden" name="action" value="refresh_token">
+      <button type="submit" class="ui-button ui-widget ui-corner-all"><TMPL_VAR LANG.REFRESH_TOKEN_BUTTON></button>
+    </form>
+  </div>
+</div>
+
+<div class="ui-widget" style="margin-bottom:18px;">
+  <div class="ui-widget-header ui-corner-top" style="padding:8px 12px;"><TMPL_VAR LANG.CONFIG_TITLE></div>
+  <div class="ui-widget-content ui-corner-bottom" style="padding:15px;">
+    <form method="post" action="index.cgi?page=config">
+      <input type="hidden" name="action" value="save">
+      <table style="width:100%;border-spacing:0 10px;">
+
+        <!-- Rituals account -->
+        <tr>
+          <td style="width:240px;"><label><TMPL_VAR LANG.LABEL_EMAIL></label></td>
+          <td><input type="email" name="email" value="<TMPL_VAR EMAIL>" class="ui-widget ui-widget-content" style="width:300px;padding:4px;"></td>
+        </tr>
+        <tr>
+          <td><label><TMPL_VAR LANG.LABEL_PASSWORD></label></td>
+          <td>
+            <input type="password" name="password" value="" placeholder="<TMPL_VAR LANG.PASSWORD_PLACEHOLDER>" class="ui-widget ui-widget-content" style="width:300px;padding:4px;">
+            <br><small style="color:#888;"><TMPL_VAR LANG.PASSWORD_HINT></small>
+          </td>
+        </tr>
+
+        <tr><td colspan="2"><hr style="margin:4px 0;border:none;border-top:1px solid #ddd;"></td></tr>
+
+        <!-- HTTP Virtual Input toggle -->
+        <tr>
+          <td><label>Send data via HTTP</label></td>
+          <td>
+            <select name="enable_http" id="enable_http"
+                    onchange="toggleOnOff('http_status', this.value); toggleSection('http_section', this.value=='1')"
+                    class="ui-widget ui-widget-content" style="padding:4px 8px;font-size:0.95em;">
+              <option value="1" <TMPL_IF ENABLE_HTTP>selected</TMPL_IF>>Enabled</option>
+              <option value="0" <TMPL_UNLESS ENABLE_HTTP>selected</TMPL_UNLESS>>Disabled</option>
+            </select>
+            <br><small style="color:#888;">Loxone polls LoxBerry state.cgi at a configurable interval (VI templates). No Miniserver IP needed in plugin.</small>
+          </td>
+        </tr>
+
+        <tr><td colspan="2"><hr style="margin:4px 0;border:none;border-top:1px solid #ddd;"></td></tr>
+
+        <!-- UDP Virtual Input toggle + config -->
+        <tr>
+          <td><label>Send data via UDP</label></td>
+          <td>
+            <select name="enable_udp" id="enable_udp"
+                    onchange="toggleOnOff('udp_status', this.value); toggleSection('udp_section', this.value=='1')"
+                    class="ui-widget ui-widget-content" style="padding:4px 8px;font-size:0.95em;">
+              <option value="1" <TMPL_IF ENABLE_UDP>selected</TMPL_IF>>Enabled</option>
+              <option value="0" <TMPL_UNLESS ENABLE_UDP>selected</TMPL_UNLESS>>Disabled</option>
+            </select>
+            <br><small style="color:#888;">LoxBerry pushes UDP data to Miniserver every minute via cron job (VIU templates). Requires Miniserver IP and UDP port configured below.</small>
+          </td>
+        </tr>
+
+        <!-- UDP settings (shown/hidden by toggle) -->
+        <tr id="udp_section" style="<TMPL_UNLESS ENABLE_UDP>display:none;</TMPL_UNLESS>">
+          <td colspan="2">
+            <table style="border-left:3px solid #aac;padding-left:12px;margin-left:10px;border-spacing:0 6px;width:90%;">
+              <tr>
+                <td style="width:230px;"><label><TMPL_VAR LANG.LABEL_MS_IP></label></td>
+                <td>
+                  <input type="text" name="miniserver_ip" value="<TMPL_VAR MINISERVER_IP>"
+                         placeholder="192.168.1.10 (auto-detected if empty)"
+                         class="ui-widget ui-widget-content" style="width:260px;padding:4px;">
+                  <TMPL_IF MS_AUTODETECTED>
+                  <span style="color:#4a8;font-size:0.82em;"> Auto-detected: <TMPL_VAR MS_AUTO_IP></span>
+                  </TMPL_IF>
+                </td>
+              </tr>
+              <tr>
+                <td><label><TMPL_VAR LANG.LABEL_MS_PORT></label></td>
+                <td>
+                  <input type="number" name="miniserver_port" value="<TMPL_VAR MINISERVER_PORT>"
+                         min="1024" max="65535" class="ui-widget ui-widget-content" style="width:100px;padding:4px;">
+                  <small style="color:#888;margin-left:8px;">UDP port configured in your Loxone Virtual UDP Input</small>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+
+      </table>
+      <div style="margin-top:14px;">
+        <button type="submit" class="ui-button ui-widget ui-corner-all"><TMPL_VAR LANG.BUTTON_SAVE></button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+function toggleSection(id, show) {
+  var el = document.getElementById(id);
+  if (el) el.style.display = show ? '' : 'none';
+}
+function toggleOnOff(id, val) {
+  var el = document.getElementById(id);
+  if (!el) return;
+  if (val == '1') {
+    el.textContent = 'Enabled';
+    el.style.color = '#2a7a2a';
+  } else {
+    el.textContent = 'Disabled';
+    el.style.color = '#999';
+  }
+}
+</script>
+
+</TMPL_IF><!-- END CONFIG -->
+
+<!-- === HUBS ================================================================ -->
+<TMPL_IF PAGE_HUBS>
+
+<TMPL_IF SCAN_OK>
+<div class="ui-state-highlight ui-corner-all" style="padding:10px;margin-bottom:14px;">
+  <strong>Scan complete - <TMPL_VAR SCAN_COUNT> hub(s) found and cached.</strong>
+</div>
+</TMPL_IF>
+<TMPL_IF SCAN_ERROR>
+<div class="ui-state-error ui-corner-all" style="padding:10px;margin-bottom:14px;">
+  <strong>Scan failed:</strong> <TMPL_VAR SCAN_MSG>
+</div>
+</TMPL_IF>
+
+<div class="ui-widget" style="margin-bottom:18px;">
+  <div class="ui-widget-header ui-corner-top" style="padding:8px 12px;">Rituals Genies</div>
+  <div class="ui-widget-content ui-corner-bottom" style="padding:15px;">
+
+    <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;">
+      <form method="post" action="index.cgi?page=hubs">
+        <input type="hidden" name="action" value="scan_hubs">
+        <button type="submit" class="ui-button ui-widget ui-corner-all">Scan for Genies now</button>
+      </form>
+      <TMPL_IF ENABLE_UDP>
+      <form method="post" action="index.cgi?page=hubs">
+        <input type="hidden" name="action" value="run_grabber">
+        <button type="submit" class="ui-button ui-widget ui-corner-all" style="background:#e8f0ff;">Send UDP to Miniserver now</button>
+      </form>
+      </TMPL_IF>
+    </div>
+    <p style="font-size:0.85em;color:#666;margin-top:-10px;margin-bottom:12px;">
+      Scan queries the Rituals API and refreshes the hub list.
+      <TMPL_IF ENABLE_UDP>UDP button manually triggers the grabber to push data to <strong><TMPL_VAR MINISERVER_IP></strong>:<strong><TMPL_VAR MINISERVER_PORT></strong>.</TMPL_IF>
+      The grabber cron auto-runs every minute.
+    </p>
+
+    <TMPL_IF HAS_HUBS>
+    <TMPL_LOOP HUBS>
+    <div class="r2l-hub-card">
+      <h3>
+        <TMPL_IF HUB_ONLINE><span class="r2l-status-ok">&#9679;</span><TMPL_ELSE><span class="r2l-status-off">&#9679;</span></TMPL_IF>
+        <TMPL_VAR HUB_NAME>
+        <span style="font-weight:normal;font-size:0.82em;color:#888;margin-left:8px;"><TMPL_VAR HUB_HUBLOT></span>
+        <TMPL_IF HUB_ROOMTYPE><span style="font-size:0.78em;color:#bbb;margin-left:6px;">(<TMPL_VAR HUB_ROOMTYPE><TMPL_IF HUB_SQUAREM>, <TMPL_VAR HUB_SQUAREM> m&sup2;</TMPL_IF>)</span></TMPL_IF>
+      </h3>
+      <!-- Primary sensors row -->
+      <div class="r2l-hub-grid">
+        <div><span>Power:</span> <strong><TMPL_VAR HUB_ON_TEXT></strong></div>
+        <div><span>Intensity:</span> <strong><TMPL_VAR HUB_INT_LABEL></strong></div>
+        <div><span>Cartridge:</span> <strong><TMPL_VAR HUB_FILL_TEXT></strong></div>
+        <div><span>Perfume:</span> <strong><TMPL_VAR HUB_PERFUME></strong></div>
+        <div><span>WiFi:</span> <strong><TMPL_IF HUB_WIFI><TMPL_VAR HUB_WIFI>%<TMPL_ELSE>?</TMPL_IF></strong><TMPL_IF HUB_WIFI_DESC> <span style="color:#888;font-size:0.85em;">(<TMPL_VAR HUB_WIFI_DESC>)</span></TMPL_IF></div>
+        <div><span>Battery:</span> <strong><TMPL_IF HUB_BATTERY><TMPL_VAR HUB_BATTERY><TMPL_ELSE>n/a</TMPL_IF></strong></div>
+        <div><span>Firmware:</span> <strong><TMPL_IF HUB_VERSION><TMPL_VAR HUB_VERSION><TMPL_ELSE>?</TMPL_IF></strong></div>
+      </div>
+      <!-- Attribute detail row -->
+      <div class="r2l-attr-row">
+        <TMPL_IF HUB_ROOMC_LABEL><div><span>Room size:</span> <strong><TMPL_VAR HUB_ROOMC_LABEL></strong></div></TMPL_IF>
+        <div><span>LED:</span> <strong><TMPL_VAR HUB_LED></strong></div>
+        <TMPL_IF HUB_FAN_STATE><div><span>Schedule:</span> <strong><TMPL_VAR HUB_FAN_STATE></strong></div></TMPL_IF>
+        <TMPL_IF HUB_NEXT_CHANGE><div><span>Next change:</span> <strong><TMPL_VAR HUB_NEXT_CHANGE></strong></div></TMPL_IF>
+      </div>
+      <!-- UDP key reference (collapsible) -->
+      <details style="margin-top:6px;">
+        <summary style="font-size:0.8em;color:#999;cursor:pointer;">Loxone UDP keys (prefix: <code><TMPL_VAR HUB_UDP_PREFIX></code>)</summary>
+        <div style="font-family:monospace;font-size:0.78em;background:#f8f8f8;padding:8px;border-radius:4px;margin-top:4px;line-height:1.9;">
+          <TMPL_VAR HUB_UDP_PREFIX>on = <TMPL_VAR HUB_ON_TEXT><br>
+          <TMPL_VAR HUB_UDP_PREFIX>intensity = <TMPL_VAR HUB_INTENSITY><br>
+          <TMPL_VAR HUB_UDP_PREFIX>fill = <TMPL_VAR HUB_FILL><br>
+          <TMPL_VAR HUB_UDP_PREFIX>fill_text = <TMPL_VAR HUB_FILL_TEXT><br>
+          <TMPL_VAR HUB_UDP_PREFIX>perfume = <TMPL_VAR HUB_PERFUME><br>
+          <TMPL_VAR HUB_UDP_PREFIX>wifi = <TMPL_VAR HUB_WIFI><br>
+          <TMPL_VAR HUB_UDP_PREFIX>online = <TMPL_VAR HUB_ONLINE><br>
+          <TMPL_VAR HUB_UDP_PREFIX>version = <TMPL_VAR HUB_VERSION><br>
+          <TMPL_VAR HUB_UDP_PREFIX>room = <TMPL_VAR HUB_NAME>
+        </div>
+      </details>
+      <!-- Test commands -->
+      <div class="r2l-cmd">
+        <strong style="font-size:0.85em;">Test commands:</strong>
+        <button class="r2l-testbtn" data-url="<TMPL_VAR CMD_ON1>">On (Low)</button>
+        <button class="r2l-testbtn" data-url="<TMPL_VAR CMD_ON2>">On (Med)</button>
+        <button class="r2l-testbtn" data-url="<TMPL_VAR CMD_ON3>">On (High)</button>
+        <button class="r2l-testbtn" data-url="<TMPL_VAR CMD_OFF>">Off</button>
+        <span class="r2l-cmd-result"></span>
+      </div>
+      <!-- Hub hash -->
+      <div class="r2l-hub-hash">hub key: <TMPL_VAR HUB_HASH></div>
+    </div>
+    </TMPL_LOOP>
+    <TMPL_ELSE>
+    <p style="color:#888;">No hubs found yet. Click <strong>Scan for Genies now</strong> to discover your devices.</p>
+    </TMPL_IF>
+
+  </div>
+</div>
+
+</TMPL_IF><!-- END HUBS -->
+
+<!-- === WIZARD ============================================================== -->
+<TMPL_IF PAGE_WIZARD>
+
+<div class="ui-widget" style="margin-bottom:18px;">
+  <div class="ui-widget-header ui-corner-top" style="padding:8px 12px;">&#128736; Loxone Configuration Wizard</div>
+  <div class="ui-widget-content ui-corner-bottom" style="padding:15px;">
+
+    <TMPL_IF WIZARD_HAS_DATA>
+
+    <!-- Hub table with all 3 download types per hub -->
+    <table style="width:100%;border-collapse:collapse;margin-bottom:20px;">
+      <thead>
+        <tr style="border-bottom:2px solid #ccc;">
+          <th style="text-align:left;padding:6px 10px;">Genie</th>
+          <th style="text-align:left;padding:6px 10px;">Hublot</th>
+          <th style="text-align:left;padding:6px 10px;">UDP key prefix</th>
+          <th style="text-align:center;padding:6px 10px;">Virtual Outputs<br><span style="font-size:0.78em;font-weight:normal;color:#888;">HTTP commands</span></th>
+          <th style="text-align:center;padding:6px 10px;">HTTP Inputs<br><span style="font-size:0.78em;font-weight:normal;color:#888;">Loxone polls LoxBerry</span></th>
+          <th style="text-align:center;padding:6px 10px;">UDP Inputs<br><span style="font-size:0.78em;font-weight:normal;color:#888;">LoxBerry pushes UDP</span></th>
+        </tr>
+      </thead>
+      <tbody>
+      <TMPL_LOOP WIZARD_HUBS>
+        <tr style="border-bottom:1px solid #eee;">
+          <td style="padding:8px 10px;"><strong><TMPL_VAR WIZ_NAME></strong></td>
+          <td style="padding:8px 10px;font-size:0.9em;color:#666;"><TMPL_VAR WIZ_HUBLOT></td>
+          <td style="padding:8px 10px;font-family:monospace;font-size:0.82em;">rituals/<TMPL_VAR WIZ_KEY>/</td>
+          <td style="padding:8px 10px;text-align:center;">
+            <form method="post" action="index.cgi?page=wizard" style="display:inline;">
+              <input type="hidden" name="action" value="download_vo">
+              <input type="hidden" name="hub_idx" value="<TMPL_VAR WIZ_IDX>">
+              <button type="submit" class="r2l-copy-btn ui-button ui-widget ui-corner-all" title="HTTP Virtual Output - Loxone sends HTTP GET to control the Genie">&#11015; VO</button>
+            </form>
+          </td>
+          <td style="padding:8px 10px;text-align:center;">
+            <form method="post" action="index.cgi?page=wizard" style="display:inline;">
+              <input type="hidden" name="action" value="download_vi">
+              <input type="hidden" name="hub_idx" value="<TMPL_VAR WIZ_IDX>">
+              <button type="submit" class="r2l-copy-btn ui-button ui-widget ui-corner-all" title="HTTP Virtual Input - Loxone polls state.cgi every 60s">&#11015; VI</button>
+            </form>
+          </td>
+          <td style="padding:8px 10px;text-align:center;">
+            <form method="post" action="index.cgi?page=wizard" style="display:inline;">
+              <input type="hidden" name="action" value="download_viu">
+              <input type="hidden" name="hub_idx" value="<TMPL_VAR WIZ_IDX>">
+              <button type="submit" class="r2l-copy-btn ui-button ui-widget ui-corner-all" title="UDP Virtual Input - LoxBerry pushes data every minute via UDP">&#11015; VIU</button>
+            </form>
+          </td>
+        </tr>
+      </TMPL_LOOP>
+      </tbody>
+    </table>
+
+    <!-- Explanation panels side by side -->
+    <div style="display:flex;gap:16px;margin-bottom:20px;flex-wrap:wrap;">
+
+      <!-- VI - HTTP Inputs -->
+      <div style="flex:1;min-width:280px;background:#f8fff8;border:1px solid #b8ddb8;border-radius:4px;padding:12px;">
+        <p style="margin:0 0 6px 0;font-weight:bold;color:#2a6e2a;">&#11015; VI &mdash; HTTP Virtual Inputs <span style="font-weight:normal;font-size:0.85em;">(recommended)</span></p>
+        <p style="margin:0 0 6px 0;font-size:0.85em;">Loxone polls LoxBerry every 60 seconds via HTTP. No Miniserver IP needed in plugin.</p>
+        <p style="margin:0;font-size:0.82em;color:#666;">
+          Save as <code>C:\...\Templates\VirtualIn\<strong>VI_</strong>Rituals_Name.xml</code><br>
+          Import via <em>Virtual Inputs &rarr; UDP/HTTP Device Templates &rarr; Import Template</em>
+        </p>
+        <button class="r2l-copy-btn ui-button ui-widget ui-corner-all" style="margin-top:8px;" onclick="copyTA('vi-xml')">Copy all VI XML</button>
+        <textarea id="vi-xml" class="r2l-xml" style="max-height:220px;width:100%;box-sizing:border-box;resize:vertical;font-family:monospace;font-size:0.75em;margin-top:6px;" readonly><TMPL_VAR WIZARD_VIU_XML></textarea>
+      </div>
+
+      <!-- VIU - UDP Inputs -->
+      <div style="flex:1;min-width:280px;background:#f8f8ff;border:1px solid #b8b8dd;border-radius:4px;padding:12px;">
+        <p style="margin:0 0 6px 0;font-weight:bold;color:#2a2a8e;">&#11015; VIU &mdash; UDP Virtual Inputs</p>
+        <p style="margin:0 0 6px 0;font-size:0.85em;">LoxBerry pushes UDP data to Miniserver every minute via cron. Requires Miniserver IP configured in plugin.</p>
+        <p style="margin:0;font-size:0.82em;color:#666;">
+          Save as <code>C:\...\Templates\VirtualIn\<strong>VIU_</strong>Rituals_Name.xml</code><br>
+          UDP port: <strong><TMPL_VAR WIZARD_UDP_PORT></strong> &mdash; Import via <em>Virtual Inputs &rarr; UDP/HTTP Device Templates &rarr; Import Template</em>
+        </p>
+        <button class="r2l-copy-btn ui-button ui-widget ui-corner-all" style="margin-top:8px;" onclick="copyTA('viu-xml')">Copy all VIU XML</button>
+        <textarea id="viu-xml" class="r2l-xml" style="max-height:220px;width:100%;box-sizing:border-box;resize:vertical;font-family:monospace;font-size:0.75em;margin-top:6px;" readonly><TMPL_VAR WIZARD_VIU_UDP_XML></textarea>
+      </div>
+
+      <!-- VO - HTTP Outputs -->
+      <div style="flex:1;min-width:280px;background:#fff8f8;border:1px solid #ddb8b8;border-radius:4px;padding:12px;">
+        <p style="margin:0 0 6px 0;font-weight:bold;color:#8e2a2a;">&#11015; VO &mdash; Virtual Outputs</p>
+        <p style="margin:0 0 6px 0;font-size:0.85em;">Loxone sends HTTP GET commands to LoxBerry to control the Genie (on/off/intensity).</p>
+        <p style="margin:0;font-size:0.82em;color:#666;">
+          Save as <code>C:\...\Templates\VirtualOut\<strong>VO_</strong>Rituals_Name.xml</code><br>
+          Import via <em>Virtual Outputs &rarr; UDP/HTTP Device Templates &rarr; Import Template</em>
+        </p>
+        <button class="r2l-copy-btn ui-button ui-widget ui-corner-all" style="margin-top:8px;" onclick="copyTA('vo-xml')">Copy all VO XML</button>
+        <textarea id="vo-xml" class="r2l-xml" style="max-height:220px;width:100%;box-sizing:border-box;resize:vertical;font-family:monospace;font-size:0.75em;margin-top:6px;" readonly><TMPL_VAR WIZARD_VO_XML></textarea>
+      </div>
+
+    </div>
+
+    <TMPL_ELSE>
+    <p style="color:#888;">No hub data available. Go to the <strong>Hubs</strong> tab and click <em>Scan for Genies now</em> first.</p>
+    </TMPL_IF>
+
+  </div>
+</div>
+
+</TMPL_IF><!-- END WIZARD -->
+
+<!-- === LOGS ================================================================ -->
+<TMPL_IF PAGE_LOGS>
+
+<TMPL_IF RAW_DUMP>
+<div class="ui-widget" style="margin-bottom:18px;">
+  <div class="ui-widget-header ui-corner-top" style="padding:8px 12px;">&#128203; Raw API Response</div>
+  <div class="ui-widget-content ui-corner-bottom" style="padding:15px;">
+    <div class="r2l-xml" style="max-height:400px;"><TMPL_VAR RAW_DUMP ESCAPE=NONE></div>
+  </div>
+</div>
+</TMPL_IF>
+
+<div class="ui-widget" style="margin-bottom:18px;">
+  <div class="ui-widget-header ui-corner-top" style="padding:8px 12px;">&#128203; Debug Tools</div>
+  <div class="ui-widget-content ui-corner-bottom" style="padding:15px;">
+
+    <p style="font-size:0.88em;color:#666;margin-top:0;">
+      These buttons call the Rituals cloud API live and display the raw JSON response above the Plugin Logs.
+      The hub data in the <strong>Hubs</strong> tab is refreshed automatically every minute by the grabber cron job.
+    </p>
+
+    <table style="border-collapse:collapse;width:100%;">
+      <thead>
+        <tr style="border-bottom:1px solid #ddd;font-size:0.85em;color:#666;">
+          <th style="text-align:left;padding:4px 8px;">Action</th>
+          <th style="text-align:left;padding:4px 8px;">Endpoint</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- Raw hub list -->
+        <tr style="border-bottom:1px solid #f0f0f0;">
+          <td style="padding:6px 8px;">
+            <form method="post" action="index.cgi?page=logs">
+              <input type="hidden" name="action" value="dump_raw">
+              <button type="submit" class="ui-button ui-widget ui-corner-all" style="font-size:0.82em;white-space:nowrap;">Dump hub list</button>
+            </form>
+          </td>
+          <td style="padding:6px 8px;font-family:monospace;font-size:0.8em;color:#555;">GET /apiv2/account/hubs</td>
+        </tr>
+
+        <TMPL_IF HAS_HUBS>
+        <TMPL_LOOP HUBS>
+        <!-- Sensors per hub -->
+        <tr style="border-bottom:1px solid #f0f0f0;">
+          <td style="padding:6px 8px;">
+            <form method="post" action="index.cgi?page=logs">
+              <input type="hidden" name="action" value="dump_sensors">
+              <input type="hidden" name="hub_hash" value="<TMPL_VAR HUB_HASH>">
+              <button type="submit" class="ui-button ui-widget ui-corner-all" style="font-size:0.82em;white-space:nowrap;">Dump sensors: <TMPL_VAR HUB_NAME></button>
+            </form>
+          </td>
+          <td style="padding:6px 8px;font-family:monospace;font-size:0.8em;color:#555;">
+            GET /apiv2/hubs/{hash}/sensors/{fillc|rfidc|wific|battc|versionc}
+          </td>
+        </tr>
+        <!-- Individual attributes per hub -->
+        <tr style="border-bottom:1px solid #f0f0f0;">
+          <td style="padding:6px 8px;">
+            <form method="post" action="index.cgi?page=logs">
+              <input type="hidden" name="action" value="dump_attributes">
+              <input type="hidden" name="hub_hash" value="<TMPL_VAR HUB_HASH>">
+              <button type="submit" class="ui-button ui-widget ui-corner-all" style="font-size:0.82em;white-space:nowrap;">Dump attributes: <TMPL_VAR HUB_NAME></button>
+            </form>
+          </td>
+          <td style="padding:6px 8px;font-family:monospace;font-size:0.8em;color:#555;">
+            GET /apiv2/hubs/{hash}/attributes/{fanc|speedc|roomnamec|ledc|squaremeterc}
+          </td>
+        </tr>
+        </TMPL_LOOP>
+        </TMPL_IF>
+
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="ui-widget">
+  <div class="ui-widget-header ui-corner-top" style="padding:8px 12px;"><TMPL_VAR LANG.LOGS_TITLE></div>
+  <div class="ui-widget-content ui-corner-bottom" style="padding:15px;">
+    <TMPL_VAR LOGLIST>
+  </div>
+</div>
+
+</TMPL_IF><!-- END LOGS -->
+
+<script>
+// AJAX test commands - use relative URL so it works regardless of hostname
+document.addEventListener('DOMContentLoaded', function() {
+  document.querySelectorAll('.r2l-testbtn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      // Build relative URL from data-url (strip protocol+host, keep path+query)
+      var fullUrl = btn.getAttribute('data-url');
+      var relUrl  = fullUrl.replace(/^https?:\/\/[^\/]+/, '');
+      var result  = btn.parentNode.querySelector('.r2l-cmd-result');
+
+      btn.disabled = true;
+      result.style.color = '#888';
+      result.textContent = 'Sending\u2026';
+
+      fetch(relUrl, { method: 'GET' })
+        .then(function(r) {
+          if (!r.ok) throw new Error('HTTP ' + r.status);
+          return r.json();
+        })
+        .then(function(d) {
+          if (d.ok) {
+            result.textContent = '\u2713 OK';
+            result.style.color = '#2a7a2a';
+          } else {
+            result.textContent = '\u2717 ' + (d.error || 'Error');
+            result.style.color = '#c00';
+          }
+        })
+        .catch(function(e) {
+          result.textContent = '\u2717 ' + e.message;
+          result.style.color = '#c00';
+        })
+        .finally(function() {
+          btn.disabled = false;
+          setTimeout(function() { result.textContent = ''; }, 4000);
+        });
+    });
+  });
+});
+
+function copyText(id) {
+  var el  = document.getElementById(id);
+  var txt = el.innerText || el.textContent;
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(txt).then(function() { alert('Copied!'); });
+  } else {
+    var ta = document.createElement('textarea');
+    ta.value = txt; document.body.appendChild(ta);
+    ta.select(); document.execCommand('copy');
+    document.body.removeChild(ta); alert('Copied!');
+  }
+}
+function copyTA(id) {
+  var el = document.getElementById(id);
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(el.value).then(function() { alert('Copied!'); });
+  } else {
+    el.select(); document.execCommand('copy'); alert('Copied!');
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"><title>Rituals2Lox Help</title></head>
+<body>
+<h2>Rituals2Lox - Help</h2>
+
+<h3>Initial Setup</h3>
+<ol>
+  <li>Enter your <strong>Rituals account email and password</strong> and save.</li>
+  <li>Click <strong>Refresh Token Now</strong> - the status indicator should turn green.</li>
+  <li>Enter the <strong>IP address of your Loxone Miniserver</strong> and a UDP port (default 56069), save.</li>
+  <li>In Loxone Config, create a <strong>Virtual UDP Input</strong> on the same port. Add commands matching the UDP keys below.</li>
+  <li>To send commands, create <strong>Virtual HTTP Output</strong> entries using the URLs shown in the integration panel.</li>
+</ol>
+
+<h3>Token Management</h3>
+<p>The Rituals API issues short-lived tokens (~50 min). Rituals2Lox refreshes automatically every 45 minutes via cron. You can also click <strong>Refresh Token Now</strong> at any time. If a refresh fails (network outage etc.), the grabber logs a warning and skips that poll cycle - the next cron run will recover automatically.</p>
+
+<h3>UDP Virtual Input fields</h3>
+<table border="1" cellpadding="5" cellspacing="0">
+  <tr><th>Field</th><th>Type</th><th>Values</th><th>V2 API key</th></tr>
+  <tr><td>on</td><td>binary</td><td>0 = off, 1 = on</td><td>fanc</td></tr>
+  <tr><td>intensity</td><td>integer</td><td>1 = low, 2 = medium, 3 = high</td><td>speedc</td></tr>
+  <tr><td>fill</td><td>integer</td><td>0, 25, 50, 100 or -1 (unknown)</td><td>fillc (mapped from title)</td></tr>
+  <tr><td>fill_text</td><td>text</td><td>Full / Half / Low / Empty</td><td>fillc.title</td></tr>
+  <tr><td>perfume</td><td>text</td><td>Fragrance name</td><td>rfidc.title</td></tr>
+  <tr><td>battery</td><td>text</td><td>Full / Half / Low (battery models only)</td><td>battc.title</td></tr>
+  <tr><td>wifi</td><td>integer</td><td>0, 25, 50, 100 or -1</td><td>wific (mapped from title)</td></tr>
+  <tr><td>online</td><td>binary</td><td>0 = offline, 1 = online</td><td>onlinec.title</td></tr>
+  <tr><td>room</td><td>text</td><td>Room name from Rituals app</td><td>roomnamec</td></tr>
+  <tr><td>version</td><td>text</td><td>Firmware version string</td><td>versionc</td></tr>
+</table>
+
+<h3>sendcmd.cgi command reference</h3>
+<table border="1" cellpadding="5" cellspacing="0">
+  <tr><th>command=</th><th>Extra params</th><th>Action</th><th>V2 attrs set</th></tr>
+  <tr><td>on</td><td>intensity=1|2|3 (optional, default 1)</td><td>Turn diffuser on</td><td>fanc=1, speedc=N</td></tr>
+  <tr><td>off</td><td>-</td><td>Turn diffuser off</td><td>fanc=0</td></tr>
+  <tr><td>intensity</td><td>value=1|2|3</td><td>Set fan speed without toggling power</td><td>speedc=N</td></tr>
+</table>
+<p>The <strong>hub</strong> parameter is the 64-character hex hash from the API response (logged by grabber on first run). This is different from the <strong>hublot</strong> (e.g. LOT119-12-A4980-022) which is a human-readable lot number.</p>
+
+<h3>Log files</h3>
+<ul>
+  <li><code>grabber.log</code> - poll results, UDP messages, hub hashes</li>
+  <li><code>token-manager.log</code> - token fetch results and expiry info</li>
+  <li><code>sendcmd.log</code> - command execution log</li>
+  <li><code>webui.log</code> - web interface actions</li>
+</ul>
+</body>
+</html>

@@ -1,0 +1,4 @@
+#!/bin/bash
+export PERL5LIB=/opt/loxberry/libs/perllib
+export LBHOMEDIR=/opt/loxberry
+/usr/bin/perl REPLACELBPBINDIR/token-manager.pl check 2>&1

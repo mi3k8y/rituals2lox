@@ -16,7 +16,7 @@ use LoxBerry::Log;
 binmode(STDOUT, ':encoding(UTF-8)');
 
 use constant {
-    API_BASE    => 'https://rituals.sense-company.com/apiv2',
+    API_BASE    => 'https://rituals.apiv2.sense-company.com/apiv2',
     TOKEN_FILE  => 'REPLACELBPDATADIR/token.json',
     CONFIG_FILE => 'REPLACELBPDATADIR/config.json',
     CACHE_FILE  => 'REPLACELBPDATADIR/hubs_cache.json',
@@ -179,7 +179,7 @@ foreach my $entry (@$hubs) {
     # -- UDP to Miniserver -----------------------------------------------------
     # UDP state: fields match VirtualInUdpCmd entries in the VIU template
     # Analog=true fields MUST send clean integers/numbers (no trailing whitespace/text)
-    # Analog=false fields send text strings (captured up to newline by Loxone )
+    # Analog=false fields send text strings (captured up to newline by Loxone )
     my %state = (
         on        => ($fanc eq '1') ? 1 : 0,         # Analog=true  integer 0/1
         intensity => int($speedc || 0),               # Analog=true  integer 1-3

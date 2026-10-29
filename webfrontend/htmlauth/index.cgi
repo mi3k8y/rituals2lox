@@ -532,7 +532,7 @@ sub scan_hubs_live {
     my $ua = LWP::UserAgent->new( agent => 'Rituals2Lox/0.1', timeout => 20 );
 
     # Step 1: Get hub list
-    my $req = HTTP::Request->new( GET => 'https://rituals.sense-company.com/apiv2/account/hubs' );
+    my $req = HTTP::Request->new( GET => 'https://rituals.apiv2.sense-company.com/apiv2/account/hubs' );
     $req->header( Authorization => $token );
     my $resp = $ua->request($req);
 
@@ -567,7 +567,7 @@ sub scan_hubs_live {
         my $speedc    = $av->{speedc}    // '0';
         my $roomnamec = $av->{roomnamec} // $av->{fspacenamec} // $hublot;
         my $squarem   = $av->{squaremeterc} // '';
-        my $roomtype  = $av->{fspacetypec}  // '';
+        my $rootype  = $av->{fspacetypec}  // '';
         my $ledc      = $av->{ledc}      // '0';
 
         LOGINF("Hub: hublot=$hublot name='$roomnamec' fanc=$fanc speedc=$speedc status=$status");
@@ -596,7 +596,7 @@ sub scan_hubs_live {
             for my $name (keys %sensor_targets) {
                 next unless $sensors_cap->{$name};  # skip if sensor not present on device
 
-                my $url  = "https://rituals.sense-company.com/apiv2/hubs/$hash/sensors/$name";
+                my $url  = "https://rituals.apiv2.sense-company.com/apiv2/hubs/$hash/sensors/$name";
                 my $sreq = HTTP::Request->new( GET => $url );
                 $sreq->header( Authorization => $token );
                 my $sresp = $ua->request($sreq);
@@ -607,249 +607,71 @@ sub scan_hubs_live {
                         my $val  = $d->{value} // $d->{title} // '';
                         my $desc = $d->{description} // '';
                         ${ $sensor_targets{$name} } = $val;
-                        # wific description often contains the dBm value
-                        $wifi_desc = $desc if $name eq 'wific' && $desc;
-                        LOGINF("  sensor $name = '$val' desc='$desc'");
-                    }
-                } else {
-                    LOGWARN("Sensor $name HTTP " . $sresp->code . " for $hublot");
-                }
-            }
-
-            # Note: device local IP not available via V2 cloud API
-        }
-
-        LOGINF("  fill='$fill_t' perfume='$perfume_t' wifi='$wifi_t' version='$version_t'");
-
-        # Rituals fill level titles (confirmed from real API responses)
-        # "No measurement available" = sensor present but no reading yet
-        my %fill_map = (
-            'Full'                     => 100,
-            'Half'                     => 50,
-            'Low'                      => 25,
-            'Empty'                    => 0,
-            'No measurement available' => -1,  # sensor exists but no data
-        );
-        my %wifi_map = (
-            'High'   => 100,
-            'Medium' => 50,
-            'Low'    => 25,
-        );
-
-        # For fill display: if -1 show "?" not "-1%"
-        my $fill_num  = exists $fill_map{$fill_t}  ? $fill_map{$fill_t}  : -1;
-        my $wifi_num  = exists $wifi_map{$wifi_t}  ? $wifi_map{$wifi_t}  : -1;
-        my $fill_disp = $fill_t || '?';
-
-        # nextFanChange schedule info
-        my $nfc           = $entry->{nextFanChange} // {};
-        my $fan_state     = $nfc->{currentState}        // '';
-        my $next_time     = $nfc->{nextStateChangeTime}  // '';
-        my $next_val      = $nfc->{nextStateChangeValue};
-        my $next_change   = '';
-        if ($next_time && defined $next_val) {
-            $next_change = "$next_time (speed: $next_val)";
-        } elsif ($fan_state) {
-            $next_change = $fan_state;
-        }
-
-        push @hubs, {
-            name            => $roomnamec,
-            hash            => $hash,
-            hublot          => $hublot,
-            status          => $status,
-            on              => ($fanc eq '1') ? 1 : 0,
-            intensity       => int($speedc // 0),
-            squarem         => $squarem,
-            roomtype        => $roomtype,
-            roomc           => $av->{roomc} // '',
-            led             => ($ledc eq '1') ? 1 : 0,
-            fan_state       => $fan_state,
-            next_fan_change => $next_change,
-            fill            => $fill_num,
-            fill_text       => $fill_disp,
-            perfume         => $perfume_t,
-            battery         => $batt_t,
-            wifi            => $wifi_num,
-            online          => $status ? 1 : 0,
-            version         => $version_t || $fw_fallback,
-            wifi_desc       => $wifi_desc,
-
-        };
-    }
-
-    LOGINF("Scan complete  -  " . scalar(@hubs) . " hub(s) parsed.");
-    return { ok => 1, hubs => \@hubs };
-}
-
-# Fetch raw hub JSON for debug dumping
-sub fetch_raw_hubs {
-    return '{"error":"No token file"}' unless -f $token_file;
-    my $td    = load_json($token_file);
-    my $token = $td->{eva_token} // '';
-    return '{"error":"No eva_token in token.json"}' unless $token;
-
-    my $ua = LWP::UserAgent->new( agent => 'Rituals2Lox/0.1', timeout => 15 );
-    my $req = HTTP::Request->new( GET => 'https://rituals.sense-company.com/apiv2/account/hubs' );
-    $req->header( Authorization => $token );
-    my $resp = $ua->request($req);
-    return '{"error":"HTTP ' . $resp->status_line . '"}' unless $resp->is_success;
-    return $resp->decoded_content;
-}
-
-# -- Helpers --------------------------------------------------------------------
-
-# Extract a scalar value from a sensor field regardless of whether it's
-# a plain scalar, a hash with 'title', or a hash with 'value'
-sub _sensor_val {
-    my ($v) = @_;
-    return '' unless defined $v;
-    return $v->{title} // $v->{value} // '' if ref $v eq 'HASH';
-    return '' if ref $v;   # array or other ref  -  skip
-    return "$v";           # plain scalar  -  stringify (handles booleans/numbers)
-}
-
-# Fetch raw hub JSON for debug dumping
-sub fetch_raw_hubs {
-    return '{"error":"No token file"}' unless -f $token_file;
-    my $td    = load_json($token_file);
-    my $token = $td->{eva_token} // '';
-    return '{"error":"No eva_token in token.json"}' unless $token;
-
-    my $ua = LWP::UserAgent->new( agent => 'Rituals2Lox/0.1', timeout => 15 );
-    my $req = HTTP::Request->new( GET => 'https://rituals.sense-company.com/apiv2/account/hubs' );
-    $req->header( Authorization => $token );
-    my $resp = $ua->request($req);
-    return '{"error":"HTTP ' . $resp->status_line . '"}' unless $resp->is_success;
-    return $resp->decoded_content;
-}
-
-sub fetch_raw_sensors {
-    my ($hub_hash) = @_;
-    return '{"error":"No hub hash provided"}' unless $hub_hash;
-    return '{"error":"No token file"}' unless -f $token_file;
-    my $td    = load_json($token_file);
-    my $token = $td->{eva_token} // '';
-    return '{"error":"No eva_token"}' unless $token;
-
-    my $ua = LWP::UserAgent->new( agent => 'Rituals2Lox/0.1', timeout => 15 );
-    my $out = "Testing all known Rituals API endpoints for hub: $hub_hash
-";
-    $out .= "=" x 60 . "
-
-";
-
-    # Comprehensive test of all plausible URL patterns
-    my @paths = (
-        # Working attribute value endpoints (returns {"description":"...","value":"..."})
-        "/apiv2/hubs/$hub_hash/attributes/fanc",
-        "/apiv2/hubs/$hub_hash/attributes/speedc",
-        "/apiv2/hubs/$hub_hash/attributes/roomnamec",
-        # Sensor list (returns capability flags)
-        "/apiv2/hubs/$hub_hash/sensors",
-        # Individual sensor value endpoints (expected format: {"description":"...","value":"..."})
-        "/apiv2/hubs/$hub_hash/sensors/fillc",
-        "/apiv2/hubs/$hub_hash/sensors/rfidc",
-        "/apiv2/hubs/$hub_hash/sensors/wific",
-        "/apiv2/hubs/$hub_hash/sensors/versionc",
-        "/apiv2/hubs/$hub_hash/sensors/battc",
-
-    );
-
-    for my $path (@paths) {
-        my $req = HTTP::Request->new( GET => "https://rituals.sense-company.com$path" );
-        $req->header( Authorization => $token );
-        my $resp = $ua->request($req);
-        $out .= "GET $path
-";
-        $out .= "-> HTTP " . $resp->code . " " . $resp->message . "
-";
-        if ($resp->code != 404 && $resp->code != 401) {
-            $out .= $resp->decoded_content . "
-";
-        }
-        $out .= "
-";
-    }
-    return $out;
-}
-
-sub fetch_raw_attributes {
-    my ($hub_hash) = @_;
-    return '{"error":"No hub hash"}' unless $hub_hash;
-    return '{"error":"No token"}' unless -f $token_file;
-    my $td    = load_json($token_file);
-    my $token = $td->{eva_token} // '';
-    return '{"error":"No eva_token"}' unless $token;
-
-    my $ua  = LWP::UserAgent->new( agent => 'Rituals2Lox/0.1', timeout => 15 );
-    my $out = "Attribute endpoints for hub: $hub_hash
-" . "=" x 60 . "
-
-";
-
-    # List of known attribute names (from hub.attributes capability flags)
-    my @attr_names = qw(fanc speedc roomnamec roomc fspacenamec fspacetypec ledc squaremeterc resetc);
-
-    for my $name (@attr_names) {
-        my $req = HTTP::Request->new( GET =>
-            "https://rituals.sense-company.com/apiv2/hubs/$hub_hash/attributes/$name" );
-        $req->header( Authorization => $token );
-        my $resp = $ua->request($req);
-        $out .= "GET /apiv2/hubs/.../attributes/$name
-";
-        $out .= "-> HTTP " . $resp->code . " " . $resp->message . "
-";
-        $out .= $resp->decoded_content . "
-
-" if $resp->is_success;
-        $out .= "
-" unless $resp->is_success;
-    }
-    return $out;
-}
-
-sub get_token_status {
-    unless (-f $token_file) {
-        return ( AUTH_NONE => 1, AUTH_VALID => 0, AUTH_EXPIRED => 0 );
-    }
-    my $d    = load_json($token_file);
-    my $exp  = $d->{expires_at} // 0;
-    my $fet  = $d->{fetched_at} // 0;
-    my $left = $exp - time();
-    my $fetched_str = '' . localtime($fet);
-    my $expires_str = '' . localtime($exp);
-    if ($left > 0) {
-        # Warn if token has suspiciously long TTL (> 60 min = old long-TTL token on disk)
-        my $ttl_warn = ($left > 3600) ? 1 : 0;
-        return (
-            AUTH_NONE      => 0, AUTH_VALID => 1, AUTH_EXPIRED => 0,
-            TOKEN_MIN_LEFT => int($left / 60),
-            TOKEN_FETCHED  => $fetched_str,
-            TOKEN_EXPIRES  => $expires_str,
-            TOKEN_TTL_WARN => $ttl_warn,
-        );
-    }
-    return ( AUTH_NONE => 0, AUTH_VALID => 0, AUTH_EXPIRED => 1, TOKEN_FETCHED => $fetched_str );
-}
-
-sub sanitize {
-    my ($s) = @_;
-    $s = lc $s; $s =~ s/[^a-z0-9]+/_/g; $s =~ s/^_|_$//g;
-    return $s || 'genie';
-}
-
-sub load_json {
-    my ($f) = @_;
-    return {} unless -f $f;
-    open(my $fh, '<', $f) or return {};
-    local $/; my $raw = <$fh>; close $fh;
-    return eval { decode_json($raw) } // {};
-}
-
-sub save_json {
-    my ($f, $d) = @_;
-    open(my $fh, '>', $f) or do { LOGERR("Cannot write $f: $!"); return; };
-    print $fh encode_json($d);
-    close $fh;
-}
+                        # wific description often contains the dBH˜[YBˆ	ÚYšWÙ\ØÈH	\ØÈYˆ	˜[YH\H	ÝÚYšXÉÈ	‰ˆ	\ØÎÂˆÑÒS‘ŠˆÙ[œÛÜˆ	˜[YHH	É˜[	È\ØÏIÉ\ØÉÈŠNÂˆBˆH[ÙHÂˆÑÕÐT“Š”Ù[œÛÜˆ	˜[YHˆˆ	Ü™\ÜO˜ÛÙHˆˆ›Üˆ	X›ÝŠNÂˆBˆB‚ˆÈ›ÝNˆ]šXÙHØØ[T›Ý]˜Z[X›HšXHŒˆÛÝYTBˆB‚ˆÑÒS‘Šˆš[IÉš[Ý	È\™[YOIÉ\™[YWÝ	ÈÚYšOIÉÚYšWÝ	È™\œÚ[ÛIÉ™\œÚ[Û—Ý	ÈŠNÂ‚ˆÈš]X[Èš[]™[]\È
+ÛÛ™š\›YYœ›ÛH™X[TH™\ÜÛœÙ\ÊBˆÈ“›ÈYX\Ý\™[Y[]˜Z[X›HˆHÙ[œÛÜˆ™\Ù[]›È™XY[™ÈY]ˆ^H	Yš[ÛX\H
+ˆ	Ñ[	ÈOˆLˆ	Ò[‰ÈOˆLˆ	ÓÝÉÈOˆKˆ	Ñ[\IÈOˆˆ	Ó›ÈYX\Ý\™[Y[]˜Z[X›IÈOˆLKÈÙ[œÛÜˆ^\ÝÈ]›È]Bˆ
+NÂˆ^H	]ÚYšWÛX\H
+ˆ	ÒYÚ	ÈOˆLˆ	ÓYY][IÈOˆLˆ	ÓÝÉÈOˆKˆ
+NÂ‚ˆÈ›Üˆš[\Ü^NˆYˆLHÚÝÈÈˆ›Ý‹LIH‚ˆ^H	š[Û[HH^\ÝÈ	š[ÛX\Éš[ÝHÈ	š[ÛX\Éš[ÝHˆLNÂˆ^H	ÚYšWÛ[HH^\ÝÈ	ÚYšWÛX\ÉÚYšWÝHÈ	ÚYšWÛX\ÉÚYšWÝHˆLNÂˆ^H	š[Ù\ÜH	š[Ý	ÏÉÎÂ‚ˆÈ™^˜[Ú[™ÙHØÚY[H[™›Âˆ^H	™˜ÈH	[žKOžÛ™^˜[Ú[™Ù_HËÈßNÂˆ^H	˜[—ÜÝ]HH	™˜ËOžØÝ\œ™[Ý]_HËÈ	ÉÎÂˆ^H	™^Ý[YHH	™˜ËOžÛ™^Ý]PÚ[™ÙU[Y_HËÈ	ÉÎÂˆ^H	™^Ý˜[H	™˜ËOžÛ™^Ý]PÚ[™ÙU˜[Y_NÂˆ^H	™^ØÚ[™ÙHH	ÉÎÂˆYˆ
+	™^Ý[YH	‰ˆYš[™Y	™^Ý˜[
+HÂˆ	™^ØÚ[™ÙHH‰™^Ý[YH
+ÜYYˆ	™^Ý˜[
+HŽÂˆH[ÚYˆ
+	˜[—ÜÝ]JHÂˆ	™^ØÚ[™ÙHH	˜[—ÜÝ]NÂˆB‚ˆ\ÚXœËÂˆ˜[YHOˆ	›ÛÛ[˜[YXËˆ\ÚOˆ	\ÚˆX›ÝOˆ	X›ÝˆÝ]\ÈOˆ	Ý]\ËˆÛˆOˆ
+	˜[˜È\H	ÌIÊHÈHˆˆ[[œÚ]HOˆ[
+	ÜYYÈËÈ
+KˆÜ]X\™[HOˆ	Ü]X\™[Kˆ›ÛÛ]\HOˆ	›ÛÝ\Kˆ›ÛÛXÈOˆ	]‹OžÜ›ÛÛXßHËÈ	ÉËˆYOˆ
+	YÈ\H	ÌIÊHÈHˆˆ˜[—ÜÝ]HOˆ	˜[—ÜÝ]Kˆ™^Ù˜[—ØÚ[™ÙHOˆ	™^ØÚ[™ÙKˆš[Oˆ	š[Û[Kˆš[Ý^Oˆ	š[Ù\Üˆ\™[YHOˆ	\™[YWÝˆ˜]\žHOˆ	˜]ÝˆÚYšHOˆ	ÚYšWÛ[KˆÛ›[™HOˆ	Ý]\ÈÈHˆˆ™\œÚ[ÛˆOˆ	™\œÚ[Û—Ý	×Ù˜[˜XÚËˆÚYšWÙ\ØÈOˆ	ÚYšWÙ\ØË‚ˆNÂˆB‚ˆÑÒS‘Š”ÜØ[ˆÛÛ\]HHˆˆØØ[\ŠXœÊHˆˆXŠÊH\œÙYˆŠNÂˆ™]\›ˆÈÚÈOˆKXœÈOˆXœÈNÂŸB‚ˆÈ™]Ú˜]ÈXˆ”ÓÓˆ›ÜˆXYÈ[\[™ÂœÝXˆ™]ÚÜ˜]×ÚXœÈÂˆ™]\›ˆ	ÞÈ™\œ›ÜˆŽˆ“›ÈÚÙ[ˆš[HŸIÈ[›\ÜÈYˆ	ÚÙ[—Ùš[NÂˆ^H	HØYÚœÛÛŠ	ÚÙ[—Ùš[JNÂˆ^H	ÚÙ[ˆH	OžÙ]˜WÝÚÙ[ŸHËÈ	ÉÎÂˆ™]\›ˆ	ÞÈ™\œ›ÜˆŽˆ“›È]˜WÝÚÙ[ˆ[ˆÚÙ[‹šœÛÛˆŸIÈ[›\ÜÈ	ÚÙ[ŽÂ‚ˆ^H	XHHÔŽ•\Ù\YÙ[O›™]ÊYÙ[Oˆ	Ôš]X[Ì“ÞÌŒIË[Y[Ý]OˆMH
+NÂˆ^H	™\HHŽ”™\]Y\ÝO›™]ÊÑUOˆ	ÚÎ‹ËÜš]X[Ë˜\]Œ‹œÙ[œÙKXÛÛ\[žK˜ÛÛKØ\]Œ‹ØXØÛÝ[ÚXœÉÈ
+NÂˆ	™\KOšXY\Š]]Üš^˜][ÛˆOˆ	ÚÙ[ˆ
+NÂˆ^H	™\ÜH	XKOœ™\]Y\Ý
+	™\JNÂˆ™]\›ˆ	ÞÈ™\œ›ÜˆŽˆ’	Èˆ	™\ÜOœÝ]\×Û[™Hˆ	ÈŸIÈ[›\ÜÈ	™\ÜOš\×ÜÝXØÙ\ÜÎÂˆ™]\›ˆ	™\ÜO™XÛÙYØÛÛ[ÂŸB‚ˆÈKH[\œÈKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKB‚ˆÈ^˜XÝHØØ[\ˆ˜[YHœ›ÛHHÙ[œÛÜˆšY[™YØ\™\ÜÈÙˆÚ]\ˆ]	ÜÂˆÈHZ[ˆØØ[\‹H\ÚÚ]	Ý]IËÜˆH\ÚÚ]	Ý˜[YIÂœÝXˆÜÙ[œÛÜ—Ý˜[Âˆ^H
+	ŠHHÎÂˆ™]\›ˆ	ÉÈ[›\ÜÈYš[™Y	ŽÂˆ™]\›ˆ	‹OžÝ]_HËÈ	‹OžÝ˜[Y_HËÈ	ÉÈYˆ™Yˆ	ˆ\H	ÒTÒ	ÎÂˆ™]\›ˆ	ÉÈYˆ™Yˆ	ŽÈÈ\œ˜^HÜˆÝ\ˆ™YˆHÚÚ\ˆ™]\›ˆ‰ˆŽÈÈZ[ˆØØ[\ˆHÝš[™ÚYžH
+[™\È›ÛÛX[œËÛ[X™\œÊBŸB‚ˆÈ™]Ú˜]ÈXˆ”ÓÓˆ›ÜˆXYÈ[\[™ÂœÝXˆ™]ÚÜ˜]×ÚXœÈÂˆ™]\›ˆ	ÞÈ™\œ›ÜˆŽˆ“›ÈÚÙ[ˆš[HŸIÈ[›\ÜÈYˆ	ÚÙ[—Ùš[NÂˆ^H	HØYÚœÛÛŠ	ÚÙ[—Ùš[JNÂˆ^H	ÚÙ[ˆH	OžÙ]˜WÝÚÙ[ŸHËÈ	ÉÎÂˆ™]\›ˆ	ÞÈ™\œ›ÜˆŽˆ“›È]˜WÝÚÙ[ˆ[ˆÚÙ[‹šœÛÛˆŸIÈ[›\ÜÈ	ÚÙ[ŽÂ‚ˆ^H	XHHÔŽ•\Ù\YÙ[O›™]ÊYÙ[Oˆ	Ôš]X[Ì“ÞÌŒIË[Y[Ý]OˆMH
+NÂˆ^H	™\HHŽ”™\]Y\ÝO›™]ÊÑUOˆ	ÚÎ‹ËÜš]X[Ë˜\]Œ‹œÙ[œÙKXÛÛ\[žK˜ÛÛKØ\]Œ‹ØXØÛÝ[ÚXœÉÈ
+NÂˆ	™\KOšXY\Š]]Üš^˜][ÛˆOˆ	ÚÙ[ˆ
+NÂˆ^H	™\ÜH	XKOœ™\]Y\Ý
+	™\JNÂˆ™]\›ˆ	ÞÈ™\œ›ÜˆŽˆ’	Èˆ	™\ÜOœÝ]\×Û[™Hˆ	ÈŸIÈ[›\ÜÈ	™\ÜOš\×ÜÝXØÙ\ÜÎÂˆ™]\›ˆ	™\ÜO™XÛÙYØÛÛ[ÂŸB‚œÝXˆ™]ÚÜ˜]×ÜÙ[œÛÜœÈÂˆ^H
+	X—Ú\Ú
+HHÎÂˆ™]\›ˆ	ÞÈ™\œ›ÜˆŽˆ“›ÈXˆ\Ú›ÝšYYŸIÈ[›\ÜÈ	X—Ú\ÚÂˆ™]\›ˆ	ÞÈ™\œ›ÜˆŽˆ“›ÈÚÙ[ˆš[HŸIÈ[›\ÜÈYˆ	ÚÙ[—Ùš[NÂˆ^H	HØYÚœÛÛŠ	ÚÙ[—Ùš[JNÂˆ^H	ÚÙ[ˆH	OžÙ]˜WÝÚÙ[ŸHËÈ	ÉÎÂˆ™]\›ˆ	ÞÈ™\œ›ÜˆŽˆ“›È]˜WÝÚÙ[‰¿IÈ[›\ÜÈ	ÚÙ[ŽÂ‚ˆ^H	XHHÔŽ•\Ù\YÙ[O›™]ÊYÙ[Oˆ	Ôš]X[Ì“ÞÌŒIË[Y[Ý]OˆMH
+NÂˆ^H	Ý]H•\Ý[™È[Û›ÝÛˆš]X[ÈTH[™Ú[È›ÜˆXŽˆ	X—Ú\ÚˆŽÂˆ	Ý]HHˆŒˆ‚‚ˆŽÂ‚ˆÈÛÛ\™Z[œÚ]™H\ÝÙˆ[]\ÚX›HT“]\›œÂˆ^H]ÈH
+ˆÈÛÜšÚ[™È]šX]H˜[YH[™Ú[È
+™]\›œÈÈ™\ØÜš\[ÛˆŽˆ‹‹‹ˆ‹˜[YHŽˆ‹‹‹ˆŸJBˆ‹Ø\]Œ‹ÚXœËÉX—Ú\ÚØ]šX]\ËÙ˜[˜È‹ˆ‹Ø\]Œ‹ÚXœËÉX—Ú\ÚØ]šX]\ËÜÜYYÈ‹ˆ‹Ø\]Œ‹ÚXœËÉX—Ú\ÚØ]šX]\ËÜ›ÛÛ[˜[YXÈ‹ˆÈÙ[œÛÜˆ\Ý
+™]\›œÈØ\Xš[]H›YÜÊBˆ‹Ø\]Œ‹ÚXœËÉX—Ú\ÚÜÙ[œÛÜœÈ‹ˆÈ[™]šYX[Ù[œÛÜˆ˜[YH[™Ú[È
+^XÝY›Ü›X]ˆÈ™\ØÜš\[ÛˆŽˆ‹‹‹ˆ‹˜[YHŽˆ‹‹‹ˆŸJBˆ‹Ø\]Œ‹ÚXœËÉX—Ú\ÚÜÙ[œÛÜœËÙš[È‹ˆ‹Ø\]Œ‹ÚXœËÉX—Ú\ÚÜÙ[œÛÜœËÜ™šYÈ‹ˆ‹Ø\]Œ‹ÚXœËÉX—Ú\ÚÜÙ[œÛÜœËÝÚYšXÈ‹ˆ‹Ø\]Œ‹ÚXœËÉX—Ú\ÚÜÙ[œÛÜœËÝ™\œÚ[Û˜È‹ˆ‹Ø\]Œ‹ÚXœËÉX—Ú\ÚÜÙ[œÛÜœËØ˜]È‹‚ˆ
+NÂ‚ˆ›Üˆ^H	]
+]ÊHÂˆ^H	™\HHŽ”™\]Y\ÝO›™]ÊÑUOˆšÎ‹ËÜš]X[Ë˜\]Œ‹œÙ[œÙKXÛÛ\[žK˜ÛÛI]ˆ
+NÂˆ	™\KOšXY\Š]]Üš^˜][ÛˆOˆ	ÚÙ[ˆ
+NÂˆ^H	™\ÜH	XKOœ™\]Y\Ý
+	™\JNÂˆ	Ý]H‘ÑU	]ˆŽÂˆ	Ý]H‹Oˆˆˆ	™\ÜO˜ÛÙHˆˆˆˆ	™\ÜO›Y\ÜØYÙHˆ‚ˆŽÂˆYˆ
+	™\ÜO˜ÛÙHOH	‰ˆ	™\ÜO˜ÛÙHOHJHÂˆ	Ý]H	™\ÜO™XÛÙYØÛÛ[ˆ‚ˆŽÂˆBˆ	Ý]H‚ˆŽÂˆBˆ™]\›ˆ	Ý]ÂŸB‚œÝXˆ™]ÚÜ˜]×Ø]šX]\ÈÂˆ^H
+	X—Ú\Ú
+HHÎÂˆ™]\›ˆ	ÞÈ™\œ›ÜˆŽˆ“›ÈXˆ\ÚŸIÈ[›\ÜÈ	X—Ú\ÚÂˆ™]\›ˆ	ÞÈ™\œ›ÜˆŽˆ“›ÈÚÙ[ˆŸIÈ[›\ÜÈYˆ	ÚÙ[—Ùš[NÂˆ^H	HØYÚœÛÛŠ	ÚÙ[—Ùš[JNÂˆ^H	ÚÙ[ˆH	OžÙ]˜WÝÚÙ[ŸHËÈ	ÉÎÂˆ™]\›ˆ	ÞÈ™\œ›ÜˆŽˆ“›È]˜WÝÚÙ[ˆŸIÈ[›\ÜÈ	ÚÙ[ŽÂ‚ˆ^H	XHHÔŽ•\Ù\YÙ[O›™]ÊYÙ[Oˆ	Ôš]X[Ì“ÞÌŒIË[Y[Ý]OˆMH
+NÂˆ^H	Ý]H]šX]H[™Ú[È›ÜˆXŽˆ	X—Ú\ÚˆˆˆHˆŒˆ‚‚ˆŽÂ‚ˆÈ\ÝÙˆÛ›ÝÛˆ]šX]H˜[Y\È
+œ›ÛHX‹˜]šX]\ÈØ\Xš[]H›YÜÊBˆ^H]—Û˜[Y\ÈH]Ê˜[˜ÈÜYYÈ›ÛÛ[˜[YXÈ›ÛÛXÈœÜXÙ[˜[YXÈœÜXÙ]\XÈYÈÜ]X\™[Y]\˜È™\Ù]ÊNÂ‚ˆ›Üˆ^H	˜[YH
+]—Û˜[Y\ÊHÂˆ^H	™\HHŽ”™\]Y\ÝO›™]ÊÑUO‚ˆšÎ‹ËÜš]X[Ë˜\]Œ‹œÙ[œÙKXÛÛ\[žK˜ÛÛKØ\]Œ‹ÚXœËÉX—Ú\ÚØ]šX]\ËÉ˜[YHˆ
+NÂˆ	™\KOšXY\Š]]Üš^˜][ÛˆOˆ	ÚÙ[ˆ
+NÂˆ^H	™\ÜH	XKOœ™\]Y\Ý
+	™\JNÂˆ	Ý]H‘ÑUØ\]Œ‹ÚXœËË‹‹‹Ø]šX]\ËÉ˜[YBˆŽÂˆ	Ý]H‹Oˆˆˆ	™\ÜO˜ÛÙHˆˆˆˆ	™\ÜO›Y\ÜØYÙHˆ‚ˆŽÂˆ	Ý]H	™\ÜO™XÛÙYØÛÛ[ˆ‚‚ˆˆYˆ	™\ÜOš\×ÜÝXØÙ\ÜÎÂˆ	Ý]H‚ˆˆ[›\ÜÈ	™\ÜOš\×ÜÝXØÙ\ÜÎÂˆBˆ™]\›ˆ	Ý]ÂŸB‚œÝXˆÙ]ÝÚÙ[—ÜÝ]\ÈÂˆ[›\ÜÈ
+Yˆ	ÚÙ[—Ùš[JHÂˆ™]\›ˆ
+UUÓ“Ó‘HOˆKUUÕSQOˆUUÑVT‘QOˆ
+NÂˆBˆ^H	HØYÚœÛÛŠ	ÚÙ[—Ùš[JNÂˆ^H	^H	OžÙ^\™\×Ø]HËÈÂˆ^H	™]H	OžÙ™]ÚYØ]HËÈÂˆ^H	YH	^H[YJ
+NÂˆ^H	™]ÚYÜÝˆH	ÉÈˆØØ[[YJ	™]
+NÂˆ^H	^\™\×ÜÝˆH	ÉÈˆØØ[[YJ	^
+NÂˆYˆ
+	Yˆ
+HÂˆÈØ\›ˆYˆÚÙ[ˆ\ÈÝ\ÜXÚ[Ý\ÛHÛ™È
+ˆŒZ[ˆHÛÛ™ËUÚÙ[ˆÛˆ\ÚÊBˆ^H	ÝØ\›ˆH
+	YˆÍŒ
+HÈHˆÂˆ™]\›ˆ
+ˆUUÓ“Ó‘HOˆUUÕSQOˆKUUÑVT‘QOˆˆÒÑS—ÓRS—ÓQ•Oˆ[
+	YÈŒ
+KˆÒÑS—Ñ‘UÒQOˆ	™]ÚYÜÝ‹ˆÒÑS—ÑVT‘TÈOˆ	^\™\×ÜÝ‹ˆÒÑS—ÕÕÐT“ˆOˆ	ÝØ\›‹ˆ
+NÂˆBˆ™]\›ˆ
+UUÓ“Ó‘HOˆUUÕSQOˆUUÑVT‘QOˆKÒÑS—Ñ‘UÒQOˆ	™]ÚYÜÝˆ
+NÂŸB‚œÝXˆØ[š]^™HÂˆ^H
+	ÊHHÎÂˆ	ÈHÈ	ÎÈ	È_ˆËÖ×˜K^ŒNWJË×ËÙÎÈ	È_ˆË×—ßÉËÙÎÂˆ™]\›ˆ	È	ÙÙ[šYIÎÂŸB‚œÝXˆØYÚœÛÛˆÂˆ^H
+	ŠHHÎÂˆ™]\›ˆßH[›\ÜÈYˆ	ŽÂˆÜ[Š^H	š	Ï	Ë	ŠHÜˆ™]\›ˆßNÂˆØØ[	ÎÈ^H	˜]ÈH	šŽÈÛÜÙH	šÂˆ™]\›ˆ]˜[ÈXÛÙWÚœÛÛŠ	˜]ÊHHËÈßNÂŸB‚œÝXˆØ]™WÚœÛÛˆÂˆ^H
+	‹	
+HHÎÂˆÜ[Š^H	š	Ï‰Ë	ŠHÜˆÈÈÑÑT”ŠØ[››ÝÜš]H	Žˆ	HŠNÈ™]\›ŽÈNÂˆš[	š[˜ÛÙWÚœÛÛŠ	
+NÂˆÛÜÙH	šÂŸBŠ

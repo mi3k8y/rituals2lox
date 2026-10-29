@@ -20,7 +20,7 @@ use URI::Escape qw(uri_escape);
 use LoxBerry::Log;
 
 use constant {
-    API_BASE   => 'https://rituals.sense-company.com/apiv2',
+    API_BASE   => 'https://rituals.apiv2.sense-company.com/apiv2',
     TOKEN_FILE => 'REPLACELBPDATADIR/token.json',
 };
 
@@ -40,14 +40,14 @@ if ($debug) {
     my $speed  = clamp($intensity);
     print "=== Rituals2Lox sendcmd - confirmed API format ===\n\n";
     print "# Turn ON at intensity $speed:\n";
-    print "curl -X POST 'https://rituals.sense-company.com/apiv2/hubs/$hub/attributes/fanc' \\\n";
+    print "curl -X POST 'https://rituals.apiv2.sense-company.com/apiv2/hubs/$hub/attributes/fanc' \\\n";
     print "  -H 'Authorization: $tshort' \\\n";
     print "  --data-urlencode 'fanc=1'\n\n";
-    print "curl -X POST 'https://rituals.sense-company.com/apiv2/hubs/$hub/attributes/speedc' \\\n";
+    print "curl -X POST 'https://rituals.apiv2.sense-company.com/apiv2/hubs/$hub/attributes/speedc' \\\n";
     print "  -H 'Authorization: $tshort' \\\n";
     print "  --data-urlencode 'speedc=$speed'\n\n";
     print "# Turn OFF:\n";
-    print "curl -X POST 'https://rituals.sense-company.com/apiv2/hubs/$hub/attributes/fanc' \\\n";
+    print "curl -X POST 'https://rituals.apiv2.sense-company.com/apiv2/hubs/$hub/attributes/fanc' \\\n";
     print "  -H 'Authorization: $tshort' \\\n";
     print "  --data-urlencode 'fanc=0'\n";
     exit;

@@ -24,7 +24,7 @@ use JSON;
 use LoxBerry::Log;
 
 use constant {
-    TOKEN_ENDPOINT => 'https://rituals.sense-company.com/apiv2/account/token',
+    TOKEN_ENDPOINT => 'https://rituals.apiv2.sense-company.com/apiv2/account/token',
     TOKEN_TTL      => 2700,  # 45 min - conservative TTL (API token lasts 60 min)
     REFRESH_MARGIN => 300,   # refresh when < 5 min remain (safe buffer)
     CREDS_FILE     => 'REPLACELBPDATADIR/credentials.json',
@@ -114,6 +114,7 @@ sub fetch_and_store {
 
     LOGINF("Calling Rituals API for new token.");
     my $ua = LWP::UserAgent->new( agent => 'Rituals2Lox/0.1', timeout => 15 );
+    push @{ $ua->requests_redirectable }, 'POST';   # follow 307/308 redirects on POST
 
     my $json_body = encode_json({ email => $creds->{email}, password => $creds->{password} });
     my $req = HTTP::Request->new( POST => TOKEN_ENDPOINT );

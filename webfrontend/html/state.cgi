@@ -65,7 +65,9 @@ if (!$field) {
     exit;
 }
 
-my $val = $hub_data->{$field};
+# 'perfume' is delivered as a numeric code (Loxone inputs cannot hold text); 'perfume_name' gives the text
+$field = 'perfume_code' if $field eq 'perfume';
+my $val = ($field eq 'perfume_name') ? $hub_data->{perfume} : $hub_data->{$field};
 if (!defined $val) {
     print "-1";
 } else {

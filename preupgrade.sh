@@ -11,7 +11,7 @@ PDATA=$LBPDATA/$PDIR
 echo "<INFO> Backing up plugin data before upgrade"
 mkdir -p $PTEMPPATH/upgrade/data
 
-for f in credentials.json token.json config.json; do
+for f in credentials.json token.json config.json perfumes.json; do
     if [ -f "$PDATA/$f" ]; then
         cp -p $PDATA/$f $PTEMPPATH/upgrade/data/
         echo "<INFO> Backed up $f"

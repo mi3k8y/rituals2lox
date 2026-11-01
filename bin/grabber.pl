@@ -12,6 +12,9 @@ use HTTP::Request;
 use JSON;
 use IO::Socket::INET;
 use LoxBerry::Log;
+use FindBin qw($Bin);
+use lib $Bin;
+use Perfumes;
 
 binmode(STDOUT, ':encoding(UTF-8)');
 
@@ -20,6 +23,7 @@ use constant {
     TOKEN_FILE  => 'REPLACELBPDATADIR/token.json',
     CONFIG_FILE => 'REPLACELBPDATADIR/config.json',
     CACHE_FILE  => 'REPLACELBPDATADIR/hubs_cache.json',
+    PERFUME_FILE => 'REPLACELBPDATADIR/perfumes.json',
     HTTP_TIMEOUT => 15,
 };
 
@@ -175,6 +179,8 @@ foreach my $entry (@$hubs) {
     my $version   = $version_sensor || $fw->{currentFirmware} // '';
     my $fill_num  = exists $fill_map{$fill_t} ? $fill_map{$fill_t} : -1;
     my $wifi_num  = exists $wifi_map{$wifi_t} ? $wifi_map{$wifi_t} : -1;
+    # Fragrance name -> stable integer code (see bin/Perfumes.pm; new fragrances get a new code automatically)
+    my $perfume_code = Perfumes::code_for($perfume_t, PERFUME_FILE);
 
     # -- UDP to Miniserver -----------------------------------------------------
     # UDP state: fields match VirtualInUdpCmd entries in the VIU template
@@ -187,9 +193,7 @@ foreach my $entry (@$hubs) {
         wifi      => int($wifi_num || 0),             # Analog=true  integer 0-100
         squarem   => int($squarem || 0),              # Analog=true  integer
         online    => ($online ? 1 : 0),               # Analog=true  integer 0/1
-        fill_text => $fill_t   || '',                 # Analog=false text
-        perfume   => $perfume_t || '',                # Analog=false text
-        battery   => $batt_t   || '',                 # Analog=false text
+        perfume   => $perfume_code,                   # Analog=true  integer fragrance code
         version   => do { (my $v = $version || '0') =~ s/\.//g; int($v) }, # Analog=true integer e.g. 5.4->54
         room      => $room_name || '',                # Analog=false text
         roomtype  => $roomtype  || '',                # Analog=false text
@@ -197,7 +201,7 @@ foreach my $entry (@$hubs) {
 
     if ($enable_udp && $ms_ip) {
         send_udp($hub_key, \%state, $ms_ip, $ms_port);
-        LOGINF("Sent UDP for '$room_name': on=$state{on} intensity=$state{intensity} fill=$state{fill}");
+        LOGINF("Sent UDP for '$room_name': on=$state{on} intensity=$state{intensity} fill=$state{fill} perfume=$state{perfume} ('$perfume_t')");
     } elsif ($enable_udp && !$ms_ip) {
         LOGWARN("UDP enabled but no Miniserver IP - skipping UDP for '$room_name'");
     } else {
@@ -220,6 +224,7 @@ foreach my $entry (@$hubs) {
         fill            => $fill_num,
         fill_text       => $fill_t || '?',
         perfume         => $perfume_t,
+        perfume_code    => $perfume_code,
         battery         => $batt_t,
         wifi            => $wifi_num,
         wifi_desc       => $wifi_desc,

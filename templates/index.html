@@ -261,7 +261,7 @@ function toggleOnOff(id, val) {
         <div><span>Power:</span> <strong><TMPL_VAR HUB_ON_TEXT></strong></div>
         <div><span>Intensity:</span> <strong><TMPL_VAR HUB_INT_LABEL></strong></div>
         <div><span>Cartridge:</span> <strong><TMPL_VAR HUB_FILL_TEXT></strong></div>
-        <div><span>Perfume:</span> <strong><TMPL_VAR HUB_PERFUME></strong></div>
+        <div><span>Perfume:</span> <strong><TMPL_IF HUB_PERFUME><TMPL_VAR HUB_PERFUME><TMPL_ELSE>-</TMPL_IF></strong> <span style="color:#888;font-size:0.85em;">(code <TMPL_VAR HUB_PERFUME_CODE>)</span></div>
         <div><span>WiFi:</span> <strong><TMPL_IF HUB_WIFI><TMPL_VAR HUB_WIFI>%<TMPL_ELSE>?</TMPL_IF></strong><TMPL_IF HUB_WIFI_DESC> <span style="color:#888;font-size:0.85em;">(<TMPL_VAR HUB_WIFI_DESC>)</span></TMPL_IF></div>
         <div><span>Battery:</span> <strong><TMPL_IF HUB_BATTERY><TMPL_VAR HUB_BATTERY><TMPL_ELSE>n/a</TMPL_IF></strong></div>
         <div><span>Firmware:</span> <strong><TMPL_IF HUB_VERSION><TMPL_VAR HUB_VERSION><TMPL_ELSE>?</TMPL_IF></strong></div>
@@ -280,8 +280,7 @@ function toggleOnOff(id, val) {
           <TMPL_VAR HUB_UDP_PREFIX>on = <TMPL_VAR HUB_ON_TEXT><br>
           <TMPL_VAR HUB_UDP_PREFIX>intensity = <TMPL_VAR HUB_INTENSITY><br>
           <TMPL_VAR HUB_UDP_PREFIX>fill = <TMPL_VAR HUB_FILL><br>
-          <TMPL_VAR HUB_UDP_PREFIX>fill_text = <TMPL_VAR HUB_FILL_TEXT><br>
-          <TMPL_VAR HUB_UDP_PREFIX>perfume = <TMPL_VAR HUB_PERFUME><br>
+          <TMPL_VAR HUB_UDP_PREFIX>perfume = <TMPL_VAR HUB_PERFUME_CODE> (<TMPL_VAR HUB_PERFUME>)<br>
           <TMPL_VAR HUB_UDP_PREFIX>wifi = <TMPL_VAR HUB_WIFI><br>
           <TMPL_VAR HUB_UDP_PREFIX>online = <TMPL_VAR HUB_ONLINE><br>
           <TMPL_VAR HUB_UDP_PREFIX>version = <TMPL_VAR HUB_VERSION><br>
@@ -304,6 +303,17 @@ function toggleOnOff(id, val) {
     <TMPL_ELSE>
     <p style="color:#888;">No hubs found yet. Click <strong>Scan for Genies now</strong> to discover your devices.</p>
     </TMPL_IF>
+
+    <!-- Fragrance code table -->
+    <details style="margin-top:14px;">
+      <summary style="cursor:pointer;font-weight:bold;">Fragrance codes (value of the <code>perfume</code> input)</summary>
+      <p style="font-size:0.85em;color:#666;">Loxone inputs cannot hold text, so the plugin sends a number. Translate it in Loxone Config (e.g. with a Status block). Codes never change. A cartridge that is not in the built-in list gets the next free code (100 and up) the first time it is seen and is added here automatically.</p>
+      <table border="1" cellpadding="4" cellspacing="0" style="border-collapse:collapse;font-size:0.9em;">
+        <tr><th>Code</th><th>Fragrance</th><th>Source</th></tr>
+        <TMPL_LOOP PERFUME_LIST><tr><td style="text-align:right;"><strong><TMPL_VAR PF_CODE></strong></td><td><TMPL_VAR PF_NAME></td><td><TMPL_VAR PF_SRC></td></tr>
+        </TMPL_LOOP>
+      </table>
+    </details>
 
   </div>
 </div>

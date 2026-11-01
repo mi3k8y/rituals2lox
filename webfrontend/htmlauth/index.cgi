@@ -25,6 +25,8 @@ my $creds_file = "$lbpdatadir/credentials.json";
 my $token_file = "$lbpdatadir/token.json";
 my $cfg_file   = "$lbpdatadir/config.json";
 my $hubs_file  = "$lbpdatadir/hubs_cache.json";
+my $perfume_file = "$lbpdatadir/perfumes.json";
+require "$lbpbindir/Perfumes.pm";
 
 my $log = LoxBerry::Log->new( name => 'webui', addtime => 1 );
 
@@ -210,6 +212,7 @@ if (ref $hubs_cache eq 'ARRAY' && @$hubs_cache) {
             HUB_FILL        => $h->{fill}       // -1,
             HUB_FILL_TEXT   => $h->{fill_text}  // '?',
             HUB_PERFUME     => $h->{perfume}    // '',
+            HUB_PERFUME_CODE => Perfumes::code_for($h->{perfume} // '', $perfume_file),
             HUB_BATTERY     => $h->{battery}    // '',
             HUB_ONLINE      => $h->{online}     // 0,
             HUB_WIFI        => $h->{wifi}       // -1,
@@ -240,6 +243,7 @@ $template->param(
     ENABLE_HTTP     => (exists $cfg->{enable_http}) ? $cfg->{enable_http} : 1,
     MINISERVER_IP   => $ms_ip   // '',
     MINISERVER_PORT => $ms_port // 56069,
+    PERFUME_LIST    => [ map { +{ PF_CODE => $_->{code}, PF_NAME => $_->{name}, PF_SRC => $_->{source} } } Perfumes::table($perfume_file) ],
 );
 
 # -- Wizard page params ---------------------------------------------------------
@@ -295,7 +299,7 @@ if ($action eq 'download_viu' || $action eq 'download_vo' || $action eq 'downloa
             [on        => 'Power (0=off 1=on)',            'false'],
             [intensity => 'Intensity (1=low 2=med 3=high)', 'true'],
             [fill      => 'Cartridge fill %',              'true'],
-            [perfume   => 'Perfume name',                  'false'],
+            [perfume   => 'Perfume code (see Hubs page)',                  'true'],
             [wifi      => 'WiFi signal %',                 'true'],
             [online    => 'Online (0/1)',                   'false'],
             [version   => 'Firmware',                      'false'],
@@ -318,7 +322,7 @@ if ($action eq 'download_viu' || $action eq 'download_vo' || $action eq 'downloa
             [on        => 'Power (0=off 1=on)',              'true'],
             [intensity => 'Intensity (1=low 2=med 3=high)',   'true'],
             [fill      => 'Cartridge fill %',                 'true'],
-            [perfume   => 'Perfume name',                     'false'],
+            [perfume   => 'Perfume code (see Hubs page)',                     'true'],
             [wifi      => 'WiFi signal strength %',           'true'],
             [online    => 'Online status (0=off 1=on)',        'true'],
             [version   => 'Firmware version (e.g. 54 = v5.4)',  'true'],
@@ -406,7 +410,7 @@ if (ref $hubs_cache eq 'ARRAY' && @$hubs_cache) {
             [on        => 'Power (0=off 1=on)',             'false'],
             [intensity => 'Intensity (1=low 2=med 3=high)',  'true'],
             [fill      => 'Cartridge fill %',               'true'],
-            [perfume   => 'Perfume name',                   'false'],
+            [perfume   => 'Perfume code (see Hubs page)',                   'true'],
             [wifi      => 'WiFi signal %',                  'true'],
             [online    => 'Online (0/1)',                    'false'],
             [version   => 'Firmware',                       'false'],
@@ -426,7 +430,7 @@ if (ref $hubs_cache eq 'ARRAY' && @$hubs_cache) {
             [on        => 'Power (0=off 1=on)',              'true'],
             [intensity => 'Intensity (1=low 2=med 3=high)',   'true'],
             [fill      => 'Cartridge fill %',                 'true'],
-            [perfume   => 'Perfume name',                     'false'],
+            [perfume   => 'Perfume code (see Hubs page)',                     'true'],
             [wifi      => 'WiFi signal strength %',           'true'],
             [online    => 'Online status (0=off 1=on)',        'true'],
             [version   => 'Firmware version (e.g. 54 = v5.4)',  'true'],
@@ -663,6 +667,7 @@ sub scan_hubs_live {
             fill            => $fill_num,
             fill_text       => $fill_disp,
             perfume         => $perfume_t,
+            perfume_code    => Perfumes::code_for($perfume_t, $perfume_file),
             battery         => $batt_t,
             wifi            => $wifi_num,
             online          => $status ? 1 : 0,

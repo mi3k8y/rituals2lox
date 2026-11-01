@@ -22,13 +22,32 @@
   <tr><td>on</td><td>binary</td><td>0 = off, 1 = on</td><td>fanc</td></tr>
   <tr><td>intensity</td><td>integer</td><td>1 = low, 2 = medium, 3 = high</td><td>speedc</td></tr>
   <tr><td>fill</td><td>integer</td><td>0, 25, 50, 100 or -1 (unknown)</td><td>fillc (mapped from title)</td></tr>
-  <tr><td>fill_text</td><td>text</td><td>Full / Half / Low / Empty</td><td>fillc.title</td></tr>
-  <tr><td>perfume</td><td>text</td><td>Fragrance name</td><td>rfidc.title</td></tr>
-  <tr><td>battery</td><td>text</td><td>Full / Half / Low (battery models only)</td><td>battc.title</td></tr>
+  <tr><td>perfume</td><td>integer</td><td>Fragrance code, see table below</td><td>rfidc.title (mapped to code)</td></tr>
   <tr><td>wifi</td><td>integer</td><td>0, 25, 50, 100 or -1</td><td>wific (mapped from title)</td></tr>
   <tr><td>online</td><td>binary</td><td>0 = offline, 1 = online</td><td>onlinec.title</td></tr>
   <tr><td>room</td><td>text</td><td>Room name from Rituals app</td><td>roomnamec</td></tr>
   <tr><td>version</td><td>text</td><td>Firmware version string</td><td>versionc</td></tr>
+</table>
+
+<h3>Fragrance codes</h3>
+<p>Loxone inputs cannot hold text, so <code>perfume</code> is a number that you translate in Loxone Config (for example with a Status block). Codes never change. A cartridge that is not listed gets the next free code (100 and up) the first time it is seen, and appears in the list on the <strong>Hubs</strong> page.</p>
+<table border="1" cellpadding="5" cellspacing="0">
+  <tr><th>Code</th><th>Fragrance</th></tr>
+  <tr><td>0</td><td>No cartridge / no reading</td></tr>
+  <tr><td>1</td><td>The Ritual of Sakura</td></tr>
+  <tr><td>2</td><td>The Ritual of Jing</td></tr>
+  <tr><td>3</td><td>The Ritual of Ayurveda</td></tr>
+  <tr><td>4</td><td>The Ritual of Karma</td></tr>
+  <tr><td>5</td><td>The Ritual of Hammam</td></tr>
+  <tr><td>6</td><td>The Ritual of Yozakura</td></tr>
+  <tr><td>7</td><td>Mystic Cedar</td></tr>
+  <tr><td>8</td><td>Royal Tea</td></tr>
+  <tr><td>9</td><td>Sweet Jasmine</td></tr>
+  <tr><td>10</td><td>Precious Amber</td></tr>
+  <tr><td>11</td><td>Savage Garden</td></tr>
+  <tr><td>12</td><td>Suede Vanilla</td></tr>
+  <tr><td>13</td><td>Cotton Blossom</td></tr>
+  <tr><td>100+</td><td>Other cartridges, assigned automatically (see Hubs page)</td></tr>
 </table>
 
 <h3>sendcmd.cgi command reference</h3>

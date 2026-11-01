@@ -304,7 +304,6 @@ if ($action eq 'download_viu' || $action eq 'download_vo' || $action eq 'downloa
             [wifi      => 'WiFi signal %',                 'true'],
             [online    => 'Online (0/1)',                   'false'],
             [version   => 'Firmware',                      'false'],
-            [room      => 'Room name',                     'false'],
         ) {
             my ($field, $desc, $analog) = @$f;
             $xml .= "  <VirtualInHttpCmd Title=\"$hub_name $field\"";
@@ -327,9 +326,7 @@ if ($action eq 'download_viu' || $action eq 'download_vo' || $action eq 'downloa
             [wifi      => 'WiFi signal strength %',           'true'],
             [online    => 'Online status (0=off 1=on)',        'true'],
             [version   => 'Firmware version (e.g. 54 = v5.4)',  'true'],
-            [room      => 'Room name',                        'false'],
             [squarem   => 'Room size in m2',                  'true'],
-            [roomtype  => 'Room type',                        'false'],
         ) {
             my ($field, $desc, $analog) = @$f;
             $xml .= "  <VirtualInUdpCmd Title=\"$hub_name $field\"";
@@ -415,7 +412,6 @@ if (ref $hubs_cache eq 'ARRAY' && @$hubs_cache) {
             [wifi      => 'WiFi signal %',                  'true'],
             [online    => 'Online (0/1)',                    'false'],
             [version   => 'Firmware',                       'false'],
-            [room      => 'Room name',                      'false'],
         ) {
             my ($field, $desc, $analog) = @$f;
             $viu_xml .= "    <VirtualInHttpCmd Title=\"$hub_name $field\" Comment=\"$desc\"";
@@ -435,9 +431,7 @@ if (ref $hubs_cache eq 'ARRAY' && @$hubs_cache) {
             [wifi      => 'WiFi signal strength %',           'true'],
             [online    => 'Online status (0=off 1=on)',        'true'],
             [version   => 'Firmware version (e.g. 54 = v5.4)',  'true'],
-            [room      => 'Room name',                        'false'],
             [squarem   => 'Room size in m2',                  'true'],
-            [roomtype  => 'Room type',                        'false'],
         ) {
             my ($field, $desc, $analog) = @$f;
             $viu_udp_xml .= "    <VirtualInUdpCmd Title=\"$hub_name $field\"";

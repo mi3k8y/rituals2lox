@@ -190,8 +190,6 @@ foreach my $entry (@$hubs) {
         online    => ($online ? 1 : 0),               # Analog=true  integer 0/1
         perfume   => $perfume_code,                   # Analog=true  integer fragrance code
         version   => do { (my $v = $version || '0') =~ s/\.//g; int($v) }, # Analog=true integer e.g. 5.4->54
-        room      => $room_name || '',                # Analog=false text
-        roomtype  => $roomtype  || '',                # Analog=false text
     );
 
     if ($enable_udp && $ms_ip) {

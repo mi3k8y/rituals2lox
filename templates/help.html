@@ -21,7 +21,7 @@
   <tr><th>Field</th><th>Type</th><th>Values</th><th>V2 API key</th></tr>
   <tr><td>on</td><td>binary</td><td>0 = off, 1 = on</td><td>fanc</td></tr>
   <tr><td>intensity</td><td>integer</td><td>1 = low, 2 = medium, 3 = high</td><td>speedc</td></tr>
-  <tr><td>fill</td><td>integer</td><td>0, 25, 50, 100 or -1 (unknown)</td><td>fillc (mapped from title)</td></tr>
+  <tr><td>fill</td><td>integer</td><td>0-100 (%), or -1 = no reading. A range such as "40-50%" is sent as its midpoint (45)</td><td>fillc (mapped from title)</td></tr>
   <tr><td>perfume</td><td>integer</td><td>Fragrance code, see table below</td><td>rfidc.title (mapped to code)</td></tr>
   <tr><td>wifi</td><td>integer</td><td>0, 25, 50, 100 or -1</td><td>wific (mapped from title)</td></tr>
   <tr><td>online</td><td>binary</td><td>0 = offline, 1 = online</td><td>onlinec.title</td></tr>

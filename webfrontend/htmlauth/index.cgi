@@ -27,6 +27,7 @@ my $cfg_file   = "$lbpdatadir/config.json";
 my $hubs_file  = "$lbpdatadir/hubs_cache.json";
 my $perfume_file = "$lbpdatadir/perfumes.json";
 require "$lbpbindir/Perfumes.pm";
+require "$lbpbindir/Levels.pm";
 
 my $log = LoxBerry::Log->new( name => 'webui', addtime => 1 );
 
@@ -621,13 +622,6 @@ sub scan_hubs_live {
 
         # Rituals fill level titles (confirmed from real API responses)
         # "No measurement available" = sensor present but no reading yet
-        my %fill_map = (
-            'Full'                     => 100,
-            'Half'                     => 50,
-            'Low'                      => 25,
-            'Empty'                    => 0,
-            'No measurement available' => -1,  # sensor exists but no data
-        );
         my %wifi_map = (
             'High'   => 100,
             'Medium' => 50,
@@ -635,7 +629,7 @@ sub scan_hubs_live {
         );
 
         # For fill display: if -1 show "?" not "-1%"
-        my $fill_num  = exists $fill_map{$fill_t}  ? $fill_map{$fill_t}  : -1;
+        my $fill_num  = Levels::fill($fill_t);
         my $wifi_num  = exists $wifi_map{$wifi_t}  ? $wifi_map{$wifi_t}  : -1;
         my $fill_disp = $fill_t || '?';
 

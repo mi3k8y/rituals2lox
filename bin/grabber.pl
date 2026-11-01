@@ -15,6 +15,7 @@ use LoxBerry::Log;
 use FindBin qw($Bin);
 use lib $Bin;
 use Perfumes;
+use Levels;
 
 binmode(STDOUT, ':encoding(UTF-8)');
 
@@ -164,20 +165,14 @@ foreach my $entry (@$hubs) {
     }
 
     # -- Maps ------------------------------------------------------------------
-    my %fill_map = (
-        'Full'                     => 100,
-        'Half'                     => 50,
-        'Low'                      => 25,
-        'Empty'                    => 0,
-        'No measurement available' => -1,
-    );
     my %wifi_map = ('High' => 100, 'Medium' => 50, 'Low' => 25);
     my %roomc_map = ('1'=>'Small','2'=>'Medium','3'=>'Large','4'=>'Extra Large');
     my %int_map   = ('1'=>'Low','2'=>'Medium','3'=>'High');
 
     my $hub_key   = sanitize($room_name);
     my $version   = $version_sensor || $fw->{currentFirmware} // '';
-    my $fill_num  = exists $fill_map{$fill_t} ? $fill_map{$fill_t} : -1;
+    # Cartridge level text ("Full", "Empty", "40-50%" ...) -> number; a range becomes its midpoint, -1 = no reading
+    my $fill_num  = Levels::fill($fill_t);
     my $wifi_num  = exists $wifi_map{$wifi_t} ? $wifi_map{$wifi_t} : -1;
     # Fragrance name -> stable integer code (see bin/Perfumes.pm; new fragrances get a new code automatically)
     my $perfume_code = Perfumes::code_for($perfume_t, PERFUME_FILE);
